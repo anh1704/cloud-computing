@@ -51,7 +51,7 @@ app.get('/', (req, res) => {
   res.status(200).json({ 
     message: 'Product Management System API',
     status: 'OK',
-    version: '1.0.0',
+    version: '1.0.1',
     endpoints: {
       health: '/health',
       auth: '/api/auth',
