@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "target": "ES2020", // Biên dịch ra JS theo chuẩn ES2020
+    "module": "CommonJS", // Dạng module dùng trong Node.js
+    "outDir": "./dist", // Nơi lưu file JS sau khi biên dịch
+    "rootDir": "./src", // Nơi chứa mã nguồn TypeScript
+    "strict": true, // Bật kiểm tra kiểu dữ liệu nghiêm ngặt
+    "esModuleInterop": true // Cho phép import các module JS kiểu cũ (require)
+  },
+  "include": ["src/**/*"], // Chỉ biên dịch file trong src/
+  "exclude": ["node_modules"] // Bỏ qua thư mục node_modules
+}
