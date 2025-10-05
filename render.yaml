@@ -1,0 +1,51 @@
+version: 2
+services:
+  - type: web
+    name: product-management-backend
+    env: node
+    plan: free
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        fromService:
+          type: web
+          name: product-management-backend
+          property: port
+      - key: DATABASE_URL
+        fromDatabase:
+          name: product-management-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        fromService:
+          type: web
+          name: product-management-frontend
+          property: url
+
+  - type: web
+    name: product-management-frontend
+    env: static
+    plan: free
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/build
+    envVars:
+      - key: REACT_APP_API_URL
+        fromService:
+          type: web
+          name: product-management-backend
+          property: url
+      - key: REACT_APP_WS_URL
+        fromService:
+          type: web
+          name: product-management-backend
+          property: url
+
+databases:
+  - name: product-management-db
+    databaseName: product_management
+    user: product_user
+    plan: free
