@@ -22,8 +22,13 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.CORS_ORIGIN || "http://localhost:3000",
-    methods: ["GET", "POST"]
+    origin: [
+      "http://localhost:3000",
+      "https://product-management-frontend-v3pk.onrender.com",
+      process.env.CORS_ORIGIN
+    ].filter(Boolean),
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
@@ -40,11 +45,20 @@ app.use(compression());
 app.use(limiter);
 app.use(morgan('combined'));
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || "http://localhost:3000",
-  credentials: true
+  origin: [
+    "http://localhost:3000",
+    "https://product-management-frontend-v3pk.onrender.com",
+    process.env.CORS_ORIGIN
+  ].filter(Boolean),
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Serve static files (uploaded images)
+app.use('/uploads', express.static('uploads'));
 
 // Root endpoint
 app.get('/', (req, res) => {
