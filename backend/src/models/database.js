@@ -132,6 +132,10 @@ class Database {
       END;
       $$ language 'plpgsql';
 
+      DROP TRIGGER IF EXISTS update_users_updated_at ON users;
+      DROP TRIGGER IF EXISTS update_categories_updated_at ON categories;
+      DROP TRIGGER IF EXISTS update_products_updated_at ON products;
+      
       CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users 
         FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
       CREATE TRIGGER update_categories_updated_at BEFORE UPDATE ON categories 
