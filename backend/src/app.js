@@ -40,7 +40,17 @@ const limiter = rateLimit({
 });
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      fontSrc: ["'self'", "data:"]
+    }
+  }
+}));
 app.use(compression());
 app.use(limiter);
 app.use(morgan('combined'));

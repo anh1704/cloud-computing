@@ -29,6 +29,20 @@ const Products = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  // Helper function to create image URL
+  const getImageUrl = (imageUrl) => {
+    if (!imageUrl) return null;
+    const baseUrl = (process.env.REACT_APP_API_URL || 'http://localhost:5000/api').replace('/api', '');
+    const fullUrl = `${baseUrl}${imageUrl}`;
+    console.log('Image URL Debug:', { 
+      originalUrl: imageUrl, 
+      apiUrl: process.env.REACT_APP_API_URL, 
+      baseUrl, 
+      fullUrl 
+    });
+    return fullUrl;
+  };
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     name: '',
@@ -185,7 +199,7 @@ const Products = () => {
       image_url: product.image_url || ''
     });
     setEditProduct(product);
-    setImagePreview(product.image_url ? `${process.env.REACT_APP_API_URL.replace('/api', '')}${product.image_url}` : null);
+    setImagePreview(getImageUrl(product.image_url));
     setOpenDialog(true);
   };
 
@@ -223,7 +237,7 @@ const Products = () => {
                   <CardMedia
                     component="img"
                     height="200"
-                    image={`${process.env.REACT_APP_API_URL.replace('/api', '')}${product.image_url}`}
+                    image={getImageUrl(product.image_url)}
                     alt={product.name}
                     sx={{ objectFit: 'cover' }}
                   />
