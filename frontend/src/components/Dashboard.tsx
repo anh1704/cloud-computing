@@ -57,8 +57,8 @@ export function Dashboard() {
     const totalProducts = products.length;
     const totalValue = products.reduce((sum, p) => sum + p.price * p.stock, 0);
     const totalStock = products.reduce((sum, p) => sum + p.stock, 0);
-    const avgPrice = totalProducts > 0 ? products.reduce((sum, p) => sum + p.price, 0) / totalProducts : 0;
-
+    const avgPrice = totalStock > 0 ? products.reduce((sum, p) => sum + p.price * p.stock, 0) / totalStock : 0;
+    
     return { totalProducts, totalValue, totalStock, avgPrice };
   }, [products]);
 
