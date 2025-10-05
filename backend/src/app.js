@@ -32,11 +32,12 @@ const io = new Server(server, {
   }
 });
 
-// Rate limiting
+// Rate limiting - skip OPTIONS requests for CORS preflight
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
+  message: 'Too many requests from this IP, please try again later.',
+  skip: (req) => req.method === 'OPTIONS' // Skip rate limiting for preflight requests
 });
 
 // Middleware
@@ -52,8 +53,9 @@ app.use(helmet({
   }
 }));
 app.use(compression());
-app.use(limiter);
 app.use(morgan('combined'));
+
+// CORS must be before rate limiter to handle preflight requests
 app.use(cors({
   origin: [
     "http://localhost:3000",
@@ -66,15 +68,40 @@ app.use(cors({
   preflightContinue: false,
   optionsSuccessStatus: 204
 }));
+
+// Rate limiter after CORS
+app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Serve static files (uploaded images)
-app.use('/uploads', express.static('uploads'));
+// Serve static files (uploaded images) with CORS headers
+app.use('/uploads', (req, res, next) => {
+  const allowedOrigins = [
+    "http://localhost:3000",
+    "https://product-management-frontend-v3pk.onrender.com",
+    process.env.CORS_ORIGIN
+  ].filter(Boolean);
+  
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  res.header('Access-Control-Allow-Credentials', 'true');
+  next();
+}, express.static('uploads'));
 
 // Handle preflight requests explicitly
 app.options('*', (req, res) => {
-  res.header('Access-Control-Allow-Origin', req.headers.origin);
+  const allowedOrigins = [
+    "http://localhost:3000",
+    "https://product-management-frontend-v3pk.onrender.com",
+    process.env.CORS_ORIGIN
+  ].filter(Boolean);
+  
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-requested-with');
   res.header('Access-Control-Allow-Credentials', 'true');
