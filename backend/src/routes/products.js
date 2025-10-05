@@ -84,14 +84,12 @@ router.post('/upload', auth, upload.single('image'), (req, res) => {
 
 // Create new product
 router.post('/', auth, [
-  body('name').isLength({ min: 1 }).trim().escape(),
+  body('name').trim().isLength({ min: 1, max: 200 }),
   body('description').optional().trim(),
   body('price').isFloat({ min: 0 }),
-  body('sku').optional().trim(),
-  body('category_id').optional().isInt(),
+  body('category_id').isInt(),
   body('stock_quantity').optional().isInt({ min: 0 }),
-  body('min_stock_level').optional().isInt({ min: 0 }),
-  body('image_url').optional().isString()
+  body('status').optional().isIn(['active', 'inactive', 'discontinued'])
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -121,14 +119,12 @@ router.post('/', auth, [
 
 // Update product
 router.put('/:id', auth, [
-  body('name').optional().isLength({ min: 1 }).trim().escape(),
+  body('name').trim().isLength({ min: 1, max: 200 }),
   body('description').optional().trim(),
-  body('price').optional().isFloat({ min: 0 }),
-  body('sku').optional().trim(),
-  body('category_id').optional().isInt(),
-  body('quantity').optional().isInt({ min: 0 }),
-  body('min_stock_level').optional().isInt({ min: 0 }),
-  body('image_url').optional().isURL()
+  body('price').isFloat({ min: 0 }),
+  body('category_id').isInt(),
+  body('stock_quantity').optional().isInt({ min: 0 }),
+  body('status').optional().isIn(['active', 'inactive', 'discontinued'])
 ], async (req, res) => {
   try {
     const errors = validationResult(req);

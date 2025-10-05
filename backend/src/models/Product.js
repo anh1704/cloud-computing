@@ -3,19 +3,19 @@ const db = require('./database');
 class Product {
   static async create(productData) {
     const { 
-      name, description, price, sku, category_id, quantity = 0, 
+      name, description, price, category_id, stock_quantity = 0, 
       min_stock_level = 0, image_url, created_by 
     } = productData;
     
     const query = `
-      INSERT INTO products (name, description, price, sku, category_id, quantity, 
+      INSERT INTO products (name, description, price, category_id, quantity, 
                            min_stock_level, image_url, created_by, last_updated_by)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9)
-      RETURNING *
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8)
+      RETURNING *, quantity as stock_quantity
     `;
     
     const result = await db.query(query, [
-      name, description, price, sku, category_id, quantity, 
+      name, description, price, category_id, stock_quantity, 
       min_stock_level, image_url, created_by
     ]);
     
@@ -24,7 +24,7 @@ class Product {
 
   static async findAll(filters = {}) {
     let query = `
-      SELECT p.*, c.name as category_name, c.color as category_color,
+      SELECT p.*, p.quantity as stock_quantity, c.name as category_name, c.color as category_color,
              u1.username as created_by_username,
              u2.username as last_updated_by_username
       FROM products p
@@ -72,7 +72,7 @@ class Product {
 
   static async findById(id) {
     const query = `
-      SELECT p.*, c.name as category_name, c.color as category_color,
+      SELECT p.*, p.quantity as stock_quantity, c.name as category_name, c.color as category_color,
              u1.username as created_by_username,
              u2.username as last_updated_by_username
       FROM products p
@@ -86,42 +86,19 @@ class Product {
     return result.rows[0];
   }
 
-  static async update(id, updates, userId) {
-    const allowedFields = [
-      'name', 'description', 'price', 'sku', 'category_id', 
-      'quantity', 'min_stock_level', 'image_url'
-    ];
+  static async update(id, productData, userId) {
+    const { name, description, price, category_id, stock_quantity, status, image_url } = productData;
     
-    const setClause = [];
-    const values = [];
-    let paramCount = 1;
-
-    for (const [key, value] of Object.entries(updates)) {
-      if (allowedFields.includes(key)) {
-        setClause.push(`${key} = $${paramCount}`);
-        values.push(value);
-        paramCount++;
-      }
-    }
-
-    if (setClause.length === 0) {
-      throw new Error('No valid fields to update');
-    }
-
-    // Add version increment and last_updated_by
-    setClause.push(`version = version + 1`);
-    setClause.push(`last_updated_by = $${paramCount}`);
-    values.push(userId);
-    paramCount++;
-
-    setClause.push(`sync_status = 'pending'`);
-    
-    values.push(id);
     const query = `
-      UPDATE products SET ${setClause.join(', ')}, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $${paramCount} AND status = 'active'
-      RETURNING *
+      UPDATE products SET 
+        name = $1, description = $2, price = $3, category_id = $4, 
+        quantity = $5, status = $6, image_url = $7, last_updated_by = $8,
+        version = version + 1, sync_status = 'pending', updated_at = CURRENT_TIMESTAMP
+      WHERE id = $9 AND status != 'deleted'
+      RETURNING *, quantity as stock_quantity
     `;
+    
+    const values = [name, description, price, category_id, stock_quantity, status, image_url, userId, id];
 
     const result = await db.query(query, values);
     return result.rows[0];

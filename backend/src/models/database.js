@@ -61,7 +61,6 @@ class Database {
         name VARCHAR(200) NOT NULL,
         description TEXT,
         price DECIMAL(10,2) NOT NULL DEFAULT 0,
-        sku VARCHAR(100) UNIQUE,
         category_id INTEGER REFERENCES categories(id),
         quantity INTEGER DEFAULT 0,
         min_stock_level INTEGER DEFAULT 0,

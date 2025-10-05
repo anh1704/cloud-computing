@@ -34,7 +34,6 @@ const Products = () => {
     name: '',
     description: '',
     price: '',
-    sku: '',
     category_id: '',
     stock_quantity: '',
     status: 'active',
@@ -141,7 +140,6 @@ const Products = () => {
       name: '',
       description: '',
       price: '',
-      sku: '',
       category_id: '',
       stock_quantity: '',
       status: 'active',
@@ -181,9 +179,8 @@ const Products = () => {
       name: product.name,
       description: product.description,
       price: product.price,
-      sku: product.sku,
       category_id: product.category_id,
-      stock_quantity: product.stock_quantity,
+      stock_quantity: product.stock_quantity || product.quantity,
       status: product.status,
       image_url: product.image_url || ''
     });
@@ -249,10 +246,7 @@ const Products = () => {
                     />
                   </Box>
                   <Typography variant="body2">
-                    SKU: {product.sku}
-                  </Typography>
-                  <Typography variant="body2">
-                    Stock: {product.stock_quantity}
+                    Tồn kho: {product.stock_quantity || product.quantity || 0}
                   </Typography>
                 </CardContent>
                 <CardActions>
@@ -336,21 +330,12 @@ const Products = () => {
               </Box>
             </Grid>
             
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12}>
               <TextField
                 fullWidth
                 label="Tên sản phẩm"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="SKU"
-                value={formData.sku}
-                onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
                 required
               />
             </Grid>
