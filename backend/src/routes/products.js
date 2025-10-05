@@ -2,6 +2,8 @@ const express = require('express');
 const { body, validationResult, query } = require('express-validator');
 const Product = require('../models/Product');
 const { auth } = require('../middleware/auth');
+const upload = require('../middleware/upload');
+const path = require('path');
 const router = express.Router();
 
 // Get all products with filtering and pagination
@@ -62,6 +64,24 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// Upload product image
+router.post('/upload', auth, upload.single('image'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file uploaded' });
+    }
+
+    const imageUrl = `/uploads/${req.file.filename}`;
+    res.json({
+      message: 'Image uploaded successfully',
+      imageUrl
+    });
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({ error: 'Failed to upload image' });
+  }
+});
+
 // Create new product
 router.post('/', auth, [
   body('name').isLength({ min: 1 }).trim().escape(),
@@ -69,9 +89,9 @@ router.post('/', auth, [
   body('price').isFloat({ min: 0 }),
   body('sku').optional().trim(),
   body('category_id').optional().isInt(),
-  body('quantity').optional().isInt({ min: 0 }),
+  body('stock_quantity').optional().isInt({ min: 0 }),
   body('min_stock_level').optional().isInt({ min: 0 }),
-  body('image_url').optional().isURL()
+  body('image_url').optional().isString()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
