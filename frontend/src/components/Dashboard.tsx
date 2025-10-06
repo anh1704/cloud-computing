@@ -1,20 +1,45 @@
-import { useState, useMemo } from 'react';
-import { Search, Plus, LogOut, Grid2x2 as Grid, List, Import as SortAsc, Filter, TrendingUp, Package, DollarSign, ShoppingCart } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { Product, ViewMode, SortOption } from '../types';
-import { useProducts } from '../context/ProductContext';
-import { ProductCard } from './ProductCard';
-import { ProductModal } from './ProductModal';
+import { useState, useMemo } from "react";
+import {
+  Search,
+  Plus,
+  LogOut,
+  Grid2x2 as Grid,
+  List,
+  Import as SortAsc,
+  Filter,
+  TrendingUp,
+  Package,
+  DollarSign,
+  ShoppingCart,
+} from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { Product, ViewMode, SortOption } from "../types";
+import { useProducts } from "../context/ProductContext";
+import { ProductCard } from "./ProductCard";
+import { ProductModal } from "./ProductModal";
 
-const categories = ['Tất cả', 'Điện thoại', 'Laptop', 'Máy tính bảng', 'Phụ kiện', 'Khác'];
+const categories = [
+  "Tất cả",
+  "Điện thoại",
+  "Laptop",
+  "Máy tính bảng",
+  "Phụ kiện",
+  "Khác",
+];
 
 export function Dashboard() {
   const { user, logout } = useAuth();
-  const { products, createProduct, updateProduct, deleteProduct, fetchProducts } = useProducts();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('Tất cả');
-  const [sortOption, setSortOption] = useState<SortOption>('date-desc');
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const {
+    products,
+    createProduct,
+    updateProduct,
+    deleteProduct,
+    fetchProducts,
+  } = useProducts();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("Tất cả");
+  const [sortOption, setSortOption] = useState<SortOption>("date-desc");
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showFilters, setShowFilters] = useState(false);
@@ -26,24 +51,28 @@ export function Dashboard() {
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         product.description.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory =
-        selectedCategory === 'Tất cả' || product.category === selectedCategory;
+        selectedCategory === "Tất cả" || product.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });
 
     filtered.sort((a, b) => {
       switch (sortOption) {
-        case 'name-asc':
+        case "name-asc":
           return a.name.localeCompare(b.name);
-        case 'name-desc':
+        case "name-desc":
           return b.name.localeCompare(a.name);
-        case 'price-asc':
+        case "price-asc":
           return a.price - b.price;
-        case 'price-desc':
+        case "price-desc":
           return b.price - a.price;
-        case 'date-asc':
-          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-        case 'date-desc':
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case "date-asc":
+          return (
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+        case "date-desc":
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
         default:
           return 0;
       }
@@ -57,8 +86,16 @@ export function Dashboard() {
     const totalProducts = products.length;
     const totalValue = products.reduce((sum, p) => sum + p.price * p.stock, 0);
     const totalStock = products.reduce((sum, p) => sum + p.stock, 0);
+<<<<<<< HEAD
     const avgPrice = totalStock > 0 ? products.reduce((sum, p) => sum + p.price * p.stock, 0) / totalStock : 0;
     
+=======
+    const avgPrice =
+      totalStock > 0
+        ? products.reduce((sum, p) => sum + p.price * p.stock, 0) / totalStock
+        : 0;
+
+>>>>>>> bd33480 (Second commit)
     return { totalProducts, totalValue, totalStock, avgPrice };
   }, [products]);
 
@@ -74,13 +111,15 @@ export function Dashboard() {
   };
 
   const handleDeleteProduct = async (id: string) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) {
+    if (window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) {
       await deleteProduct(id);
       await fetchProducts(); // reload list sau khi xóa
     }
   };
 
-  const handleSaveProduct = async (productData: Omit<Product, 'id' | 'createdAt'>) => {
+  const handleSaveProduct = async (
+    productData: Omit<Product, "id" | "createdAt">
+  ) => {
     if (editingProduct) {
       await updateProduct(editingProduct.id, productData);
     } else {
@@ -91,9 +130,9 @@ export function Dashboard() {
   };
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
     }).format(price);
   };
 
@@ -103,7 +142,9 @@ export function Dashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Quản lý Sản phẩm</h1>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Quản lý Sản phẩm
+              </h1>
               <p className="text-sm text-gray-600">Xin chào, {user?.name}!</p>
             </div>
             <button
@@ -123,7 +164,9 @@ export function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">Tổng sản phẩm</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalProducts}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.totalProducts}
+                </p>
               </div>
               <div className="p-3 bg-blue-100 rounded-lg">
                 <Package className="w-6 h-6 text-blue-600" />
@@ -135,7 +178,9 @@ export function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">Tổng kho</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalStock}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.totalStock}
+                </p>
               </div>
               <div className="p-3 bg-green-100 rounded-lg">
                 <ShoppingCart className="w-6 h-6 text-green-600" />
@@ -147,7 +192,9 @@ export function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">Giá trị kho</p>
-                <p className="text-xl font-bold text-gray-900">{formatPrice(stats.totalValue)}</p>
+                <p className="text-xl font-bold text-gray-900">
+                  {formatPrice(stats.totalValue)}
+                </p>
               </div>
               <div className="p-3 bg-yellow-100 rounded-lg">
                 <DollarSign className="w-6 h-6 text-yellow-600" />
@@ -159,7 +206,9 @@ export function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">Giá TB</p>
-                <p className="text-xl font-bold text-gray-900">{formatPrice(stats.avgPrice)}</p>
+                <p className="text-xl font-bold text-gray-900">
+                  {formatPrice(stats.avgPrice)}
+                </p>
               </div>
               <div className="p-3 bg-orange-100 rounded-lg">
                 <TrendingUp className="w-6 h-6 text-orange-600" />
@@ -186,8 +235,8 @@ export function Dashboard() {
                 onClick={() => setShowFilters(!showFilters)}
                 className={`px-4 py-3 border rounded-lg transition duration-200 flex items-center gap-2 ${
                   showFilters
-                    ? 'bg-blue-600 text-white border-blue-600'
-                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "border-gray-300 text-gray-700 hover:bg-gray-50"
                 }`}
               >
                 <Filter className="w-5 h-5" />
@@ -195,10 +244,16 @@ export function Dashboard() {
               </button>
 
               <button
-                onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+                onClick={() =>
+                  setViewMode(viewMode === "grid" ? "list" : "grid")
+                }
                 className="px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition duration-200"
               >
-                {viewMode === 'grid' ? <List className="w-5 h-5" /> : <Grid className="w-5 h-5" />}
+                {viewMode === "grid" ? (
+                  <List className="w-5 h-5" />
+                ) : (
+                  <Grid className="w-5 h-5" />
+                )}
               </button>
 
               <button
@@ -224,8 +279,8 @@ export function Dashboard() {
                       onClick={() => setSelectedCategory(cat)}
                       className={`px-4 py-2 rounded-lg transition duration-200 ${
                         selectedCategory === cat
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                       }`}
                     >
                       {cat}
@@ -242,7 +297,9 @@ export function Dashboard() {
                   <SortAsc className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <select
                     value={sortOption}
-                    onChange={(e) => setSortOption(e.target.value as SortOption)}
+                    onChange={(e) =>
+                      setSortOption(e.target.value as SortOption)
+                    }
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
                   >
                     <option value="date-desc">Mới nhất</option>
@@ -271,9 +328,9 @@ export function Dashboard() {
         ) : (
           <div
             className={
-              viewMode === 'grid'
-                ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
-                : 'space-y-4'
+              viewMode === "grid"
+                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                : "space-y-4"
             }
           >
             {filteredAndSortedProducts.map((product) => (

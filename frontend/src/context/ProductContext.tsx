@@ -14,7 +14,7 @@ interface ProductContextType {
 }
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
-const API_URL = 'https://backend-r978.onrender.com/products';
+const API_URL = 'http://localhost:4000/products';
 
 export function ProductProvider({ children }: { children: ReactNode }) {
   const { token } = useAuth();
