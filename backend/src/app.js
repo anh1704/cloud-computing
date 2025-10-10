@@ -8,6 +8,12 @@ const { createServer } = require('http');
 const { Server } = require('socket.io');
 require('dotenv').config();
 
+// Polyfill fetch for Node.js compatibility
+if (!globalThis.fetch) {
+  const fetch = require('node-fetch');
+  globalThis.fetch = fetch;
+}
+
 const db = require('./models/database');
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
