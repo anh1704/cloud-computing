@@ -1,32 +1,92 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// Multiple API endpoints for high availability
+const API_ENDPOINTS = [
+  process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+  process.env.REACT_APP_API_URL_NODE_2 || 'https://product-management-node-2.onrender.com/api',
+  process.env.REACT_APP_API_URL_NODE_3 || 'https://product-management-node-3.onrender.com/api',
+].filter(Boolean);
 
-// Create axios instance
-const api = axios.create({
-  baseURL: API_URL,
-  timeout: 10000,
-});
+let currentEndpointIndex = 0;
+let failureCount = 0;
 
-// Request interceptor to add auth token
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
+// Create axios instance with dynamic base URL
+const createApiInstance = (baseURL) => {
+  return axios.create({
+    baseURL,
+    timeout: 10000,
+  });
+};
+
+// Get current API instance
+const getCurrentApi = () => {
+  return createApiInstance(API_ENDPOINTS[currentEndpointIndex]);
+};
+
+// Failover to next endpoint
+const failoverToNextEndpoint = () => {
+  currentEndpointIndex = (currentEndpointIndex + 1) % API_ENDPOINTS.length;
+  failureCount++;
+  console.log(`🔄 Failing over to endpoint: ${API_ENDPOINTS[currentEndpointIndex]}`);
+  
+  if (failureCount >= API_ENDPOINTS.length * 2) {
+    toast.error('All backend nodes are unavailable. Please try again later.');
+    failureCount = 0; // Reset counter
   }
-);
+};
 
-// Response interceptor for error handling
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
+// Smart API wrapper with automatic failover
+const api = {
+  async request(config) {
+    for (let attempt = 0; attempt < API_ENDPOINTS.length; attempt++) {
+      try {
+        const apiInstance = getCurrentApi();
+        const response = await apiInstance.request(config);
+        
+        // Reset failure count on successful request
+        if (failureCount > 0) {
+          failureCount = 0;
+          toast.success('Connection restored');
+        }
+        
+        return response;
+      } catch (error) {
+        console.error(`API request failed on ${API_ENDPOINTS[currentEndpointIndex]}:`, error.message);
+        
+        if (attempt < API_ENDPOINTS.length - 1) {
+          failoverToNextEndpoint();
+        } else {
+          throw error;
+        }
+      }
+    }
+  },
+
+  // Convenience methods
+  get: (url, config = {}) => api.request({ ...config, method: 'GET', url }),
+  post: (url, data, config = {}) => api.request({ ...config, method: 'POST', url, data }),
+  put: (url, data, config = {}) => api.request({ ...config, method: 'PUT', url, data }),
+  delete: (url, config = {}) => api.request({ ...config, method: 'DELETE', url }),
+  patch: (url, data, config = {}) => api.request({ ...config, method: 'PATCH', url, data }),
+};
+
+// Override request method to add auth token
+const originalRequest = api.request;
+api.request = async function(config) {
+  // Add auth token
+  const token = localStorage.getItem('authToken');
+  if (token) {
+    config.headers = {
+      ...config.headers,
+      Authorization: `Bearer ${token}`
+    };
+  }
+
+  try {
+    const response = await originalRequest.call(this, config);
+    return response;
+  } catch (error) {
     if (error.response?.status === 401) {
       localStorage.removeItem('authToken');
       localStorage.removeItem('user');
@@ -36,9 +96,9 @@ api.interceptors.response.use(
     const message = error.response?.data?.error || error.message || 'An error occurred';
     toast.error(message);
     
-    return Promise.reject(error);
+    throw error;
   }
-);
+};
 
 // Auth API
 export const authAPI = {
@@ -85,15 +145,13 @@ export const usersAPI = {
   updateUserRole: (id, role) => api.patch(`/users/${id}/role`, { role }),
 };
 
-// P2P API
-export const p2pAPI = {
-  getConnections: () => api.get('/p2p/connections'),
-  createConnection: (connectionData) => api.post('/p2p/connections', connectionData),
-  updateConnectionStatus: (peerId, status) => api.patch(`/p2p/connections/${peerId}`, { status }),
-  getAvailablePeers: () => api.get('/p2p/peers'),
-  sendSyncRequest: (syncData) => api.post('/p2p/sync-request', syncData),
-  getSyncHistory: () => api.get('/p2p/sync-history'),
-  deleteConnection: (peerId) => api.delete(`/p2p/connections/${peerId}`),
+// Cluster/Nodes API (replaces P2P)
+export const clusterAPI = {
+  getClusterInfo: () => api.get('/nodes/cluster'),
+  getNodeStatus: () => api.get('/nodes/discover'),
+  checkConsistency: () => api.post('/sync/consistency-check'),
+  resolveConflicts: () => api.post('/sync/resolve-conflicts'),
+  getSyncStatus: () => api.get('/sync/status'),
 };
 
 export default api;

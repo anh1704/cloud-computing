@@ -16,9 +16,10 @@ import ProductDetail from './pages/Products/ProductDetail';
 import Categories from './pages/Categories/Categories';
 import Users from './pages/Users/Users';
 import Profile from './pages/Profile/Profile';
-import P2PSync from './pages/P2P/P2PSync';
+// Removed P2P functionality - using distributed nodes instead
 import Reports from './pages/Reports/Reports';
 import Settings from './pages/Settings/Settings';
+import ClusterStatus from './pages/Cluster/ClusterStatus';
 
 function App() {
   const { user, loading } = useAuth();
@@ -61,7 +62,7 @@ function App() {
                 <Route path="/categories" element={<Categories />} />
                 <Route path="/users" element={<Users />} />
                 <Route path="/profile" element={<Profile />} />
-                <Route path="/p2p" element={<P2PSync />} />
+                <Route path="/cluster" element={<ClusterStatus />} />
                 <Route path="/reports" element={<Reports />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/login" element={<Navigate to="/" replace />} />

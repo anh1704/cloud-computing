@@ -35,7 +35,7 @@ import { motion } from 'framer-motion';
 
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
-import { useP2P } from '../../context/P2PContext';
+// Removed P2P context - using distributed nodes instead
 import SidebarItem from './SidebarItem';
 
 const drawerWidth = 280;
@@ -49,14 +49,14 @@ const Layout = ({ children }) => {
   const location = useLocation();
   const { user, logout } = useAuth();
   const { connected, onlineUsers } = useSocket();
-  const { connections, syncRequests } = useP2P();
+  // Removed P2P connections - using distributed nodes instead
 
   const menuItems = [
     { text: 'Dashboard', icon: DashboardIcon, path: '/dashboard' },
     { text: 'Products', icon: InventoryIcon, path: '/products' },
     { text: 'Categories', icon: CategoryIcon, path: '/categories' },
     { text: 'Users', icon: PeopleIcon, path: '/users', adminOnly: true },
-    { text: 'P2P Sync', icon: ShareIcon, path: '/p2p' },
+    { text: 'Cluster Status', icon: ShareIcon, path: '/cluster' },
     { text: 'Reports', icon: ReportsIcon, path: '/reports' },
     { text: 'Settings', icon: SettingsIcon, path: '/settings' },
   ];
@@ -143,7 +143,7 @@ const Layout = ({ children }) => {
         </Typography>
         
         <Typography variant="caption" color="text.secondary" display="block">
-          {connections.length} P2P connections
+          Distributed system active
         </Typography>
       </Box>
     </Box>

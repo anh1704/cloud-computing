@@ -104,6 +104,18 @@ router.post('/', auth, [
 
     const product = await Product.create(productData);
     
+    // Sync to other nodes
+    const dataSyncService = req.app.get('dataSyncService');
+    if (dataSyncService) {
+      try {
+        await dataSyncService.syncProduct('create', product);
+        console.log(`Product sync queued: ${product.id}`);
+      } catch (syncError) {
+        console.error('Product sync failed:', syncError.message);
+        // Continue with response even if sync fails
+      }
+    }
+    
     res.status(201).json({
       message: 'Product created successfully',
       product
@@ -138,6 +150,17 @@ router.put('/:id', auth, [
       return res.status(404).json({ error: 'Product not found' });
     }
 
+    // Sync to other nodes
+    const dataSyncService = req.app.get('dataSyncService');
+    if (dataSyncService) {
+      try {
+        await dataSyncService.syncProduct('update', product);
+        console.log(`Product update sync queued: ${product.id}`);
+      } catch (syncError) {
+        console.error('Product sync failed:', syncError.message);
+      }
+    }
+
     res.json({
       message: 'Product updated successfully',
       product
@@ -158,6 +181,17 @@ router.delete('/:id', auth, async (req, res) => {
     
     if (!product) {
       return res.status(404).json({ error: 'Product not found' });
+    }
+
+    // Sync to other nodes
+    const dataSyncService = req.app.get('dataSyncService');
+    if (dataSyncService) {
+      try {
+        await dataSyncService.syncProduct('delete', { id: req.params.id });
+        console.log(`Product delete sync queued: ${req.params.id}`);
+      } catch (syncError) {
+        console.error('Product sync failed:', syncError.message);
+      }
     }
 
     res.json({

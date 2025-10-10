@@ -51,6 +51,17 @@ router.post('/', auth, [
 
     const category = await Category.create(categoryData);
     
+    // Sync to other nodes
+    const dataSyncService = req.app.get('dataSyncService');
+    if (dataSyncService) {
+      try {
+        await dataSyncService.syncCategory('create', category);
+        console.log(`Category sync queued: ${category.id}`);
+      } catch (syncError) {
+        console.error('Category sync failed:', syncError.message);
+      }
+    }
+    
     res.status(201).json({
       message: 'Category created successfully',
       category
@@ -80,6 +91,17 @@ router.put('/:id', auth, [
       return res.status(404).json({ error: 'Category not found' });
     }
 
+    // Sync to other nodes
+    const dataSyncService = req.app.get('dataSyncService');
+    if (dataSyncService) {
+      try {
+        await dataSyncService.syncCategory('update', category);
+        console.log(`Category update sync queued: ${category.id}`);
+      } catch (syncError) {
+        console.error('Category sync failed:', syncError.message);
+      }
+    }
+
     res.json({
       message: 'Category updated successfully',
       category
@@ -97,6 +119,17 @@ router.delete('/:id', auth, async (req, res) => {
     
     if (!category) {
       return res.status(404).json({ error: 'Category not found' });
+    }
+
+    // Sync to other nodes
+    const dataSyncService = req.app.get('dataSyncService');
+    if (dataSyncService) {
+      try {
+        await dataSyncService.syncCategory('delete', { id: req.params.id });
+        console.log(`Category delete sync queued: ${req.params.id}`);
+      } catch (syncError) {
+        console.error('Category sync failed:', syncError.message);
+      }
     }
 
     res.json({

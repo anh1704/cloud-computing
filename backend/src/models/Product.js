@@ -251,6 +251,25 @@ class Product {
       client.release();
     }
   }
+
+  // Lấy tất cả products để sync
+  static async getAll() {
+    const query = `
+      SELECT * FROM products 
+      WHERE status = 'active' 
+      ORDER BY id ASC
+    `;
+    
+    const result = await db.query(query);
+    return result.rows;
+  }
+
+  // Xóa tất cả products (dùng cho bulk sync)
+  static async deleteAll() {
+    const query = `DELETE FROM products WHERE status = 'active'`;
+    const result = await db.query(query);
+    return result.rowCount;
+  }
 }
 
 module.exports = Product;

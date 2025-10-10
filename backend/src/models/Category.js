@@ -137,6 +137,24 @@ class Category {
     const result = await db.query(query, [limit]);
     return result.rows;
   }
+
+  // Lấy tất cả categories để sync
+  static async getAll() {
+    const query = `
+      SELECT * FROM categories 
+      ORDER BY id ASC
+    `;
+    
+    const result = await db.query(query);
+    return result.rows;
+  }
+
+  // Xóa tất cả categories (dùng cho bulk sync)
+  static async deleteAll() {
+    const query = `DELETE FROM categories`;
+    const result = await db.query(query);
+    return result.rowCount;
+  }
 }
 
 module.exports = Category;

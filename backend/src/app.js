@@ -13,10 +13,13 @@ const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
 const categoryRoutes = require('./routes/categories');
 const userRoutes = require('./routes/users');
-const p2pRoutes = require('./routes/p2p');
+const syncRoutes = require('./routes/sync');
+const nodeRoutes = require('./routes/nodes');
 
 const SocketService = require('./services/socketService');
-const P2PService = require('./services/p2pService');
+const NodeManager = require('./services/nodeManager');
+const LoadBalancer = require('./services/loadBalancer');
+const DataSyncService = require('./services/dataSyncService');
 
 const app = express();
 const server = createServer(app);
@@ -60,6 +63,9 @@ app.use(cors({
   origin: [
     "http://localhost:3000",
     "https://product-management-frontend-v3pk.onrender.com",
+    "https://product-management-node-1.onrender.com",
+    "https://product-management-node-2.onrender.com", 
+    "https://product-management-node-3.onrender.com",
     process.env.CORS_ORIGIN
   ].filter(Boolean),
   credentials: true,
@@ -79,6 +85,9 @@ app.use('/uploads', (req, res, next) => {
   const allowedOrigins = [
     "http://localhost:3000",
     "https://product-management-frontend-v3pk.onrender.com",
+    "https://product-management-node-1.onrender.com",
+    "https://product-management-node-2.onrender.com",
+    "https://product-management-node-3.onrender.com",
     process.env.CORS_ORIGIN
   ].filter(Boolean);
   
@@ -93,8 +102,11 @@ app.use('/uploads', (req, res, next) => {
 // Handle preflight requests explicitly
 app.options('*', (req, res) => {
   const allowedOrigins = [
-    "http://localhost:3000",
+    "http://localhost:3000", 
     "https://product-management-frontend-v3pk.onrender.com",
+    "https://product-management-node-1.onrender.com",
+    "https://product-management-node-2.onrender.com",
+    "https://product-management-node-3.onrender.com",
     process.env.CORS_ORIGIN
   ].filter(Boolean);
   
@@ -120,7 +132,8 @@ app.get('/', (req, res) => {
       products: '/api/products',
       categories: '/api/categories',
       users: '/api/users',
-      p2p: '/api/p2p'
+      sync: '/api/sync',
+      nodes: '/api/nodes'
     },
     timestamp: new Date().toISOString()
   });
@@ -135,19 +148,29 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Initialize distributed system services
+const PORT_NUMBER = parseInt(process.env.PORT) || 5000;
+const nodeId = process.env.NODE_ID || `node-${PORT_NUMBER}-${Date.now()}`;
+const nodeManager = new NodeManager(nodeId, PORT_NUMBER);
+const loadBalancer = new LoadBalancer(nodeManager);
+const dataSyncService = new DataSyncService(nodeManager, loadBalancer);
+
+// Make services available to routes
+app.set('nodeManager', nodeManager);
+app.set('loadBalancer', loadBalancer);
+app.set('dataSyncService', dataSyncService);
+
+// Socket.IO setup
+const socketService = new SocketService(io);
+socketService.initialize();
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/p2p', p2pRoutes);
-
-// Socket.IO setup
-const socketService = new SocketService(io);
-const p2pService = new P2PService(io);
-
-socketService.initialize();
-p2pService.initialize();
+app.use('/api/sync', syncRoutes);
+app.use('/api/nodes', nodeRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -163,18 +186,76 @@ app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-const PORT = process.env.PORT || 5000;
-
 // Initialize database and start server
 async function startServer() {
   try {
     await db.initialize();
     console.log('✅ Database connected successfully');
     
-    server.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`📊 Health check: http://localhost:${PORT}/health`);
+    server.listen(PORT_NUMBER, () => {
+      console.log(`🚀 Server running on port ${PORT_NUMBER}`);
+      console.log(`📊 Health check: http://localhost:${PORT_NUMBER}/health`);
       console.log(`🔗 WebSocket server ready`);
+      console.log(`🌐 Node ID: ${nodeManager.nodeId}`);
+      console.log(`⚖️ Load balancer initialized`);
+      console.log(`🔄 Data sync service ready`);
+      
+      // Cloud deployment node discovery
+      if (process.env.NODE_ENV === 'production' && process.env.DISCOVERY_NODES) {
+        console.log('🌩️ Cloud deployment detected, setting up node discovery...');
+        
+        // Delay discovery to allow other nodes to start
+        setTimeout(async () => {
+          const discoveryNodes = process.env.DISCOVERY_NODES.split(',').filter(Boolean);
+          
+          for (const nodeUrl of discoveryNodes) {
+            try {
+              console.log(`🔍 Attempting to register with ${nodeUrl}`);
+              
+              const response = await fetch(`${nodeUrl}/api/nodes/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  nodeId: nodeId,
+                  port: PORT_NUMBER
+                }),
+                timeout: 5000
+              });
+              
+              if (response.ok) {
+                const result = await response.json();
+                console.log(`✅ Successfully registered with ${nodeUrl}`);
+                
+                // Register discovered nodes locally
+                if (result.cluster && result.cluster.nodes) {
+                  result.cluster.nodes.forEach(node => {
+                    if (node.id !== nodeId) {
+                      nodeManager.registerNode(node.id, node.port, node.status);
+                    }
+                  });
+                }
+              } else {
+                console.log(`❌ Failed to register with ${nodeUrl}: ${response.status}`);
+              }
+            } catch (error) {
+              console.log(`❌ Registration failed for ${nodeUrl}:`, error.message);
+            }
+          }
+        }, 15000); // Wait 15 seconds for other services to start
+      } else if (process.env.DISCOVERY_NODES) {
+        // Local development discovery
+        console.log('🏠 Local development node discovery...');
+        setTimeout(() => {
+          const discoveryNodes = process.env.DISCOVERY_NODES.split(',');
+          discoveryNodes.forEach(nodeAddr => {
+            const [host, port] = nodeAddr.split(':');
+            if (port && port !== PORT_NUMBER.toString()) {
+              console.log(`🔍 Attempting to discover node at ${host}:${port}`);
+              nodeManager.registerNode(`node-${port}`, parseInt(port), 'healthy');
+            }
+          });
+        }, 3000);
+      }
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);

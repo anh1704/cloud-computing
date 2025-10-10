@@ -1,6 +1,6 @@
 # Product Management System
 
-A modern, full-stack product management system with real-time synchronization and peer-to-peer (P2P) data sharing capabilities, built with Node.js, PostgreSQL, and React.
+A modern, full-stack product management system with distributed architecture, automatic failover, and multi-node synchronization, built with Node.js, PostgreSQL, and React.
 
 ## 🚀 Features
 
@@ -8,7 +8,7 @@ A modern, full-stack product management system with real-time synchronization an
 - **Product Management**: Complete CRUD operations for products with categories
 - **User Authentication**: JWT-based authentication with role management
 - **Real-time Updates**: WebSocket integration for live data synchronization
-- **P2P Data Sharing**: Peer-to-peer connections for distributed data synchronization
+- **Distributed System**: Multi-node architecture with automatic failover and load balancing
 - **Modern UI**: Beautiful, responsive interface built with Material-UI
 - **Stock Management**: Low stock alerts and inventory tracking
 - **Category Management**: Organize products with custom categories
@@ -16,7 +16,7 @@ A modern, full-stack product management system with real-time synchronization an
 
 ### Technical Features
 - **Real-time Sync**: Socket.io for instant updates across all connected clients
-- **P2P Network**: Simple-peer for direct client-to-client data sharing
+- **Distributed Architecture**: Multi-node cluster with automatic data synchronization and failover
 - **Database**: PostgreSQL with connection pooling and migrations
 - **API**: RESTful API with comprehensive error handling
 - **Security**: Rate limiting, CORS, helmet protection, and input validation
@@ -29,7 +29,8 @@ A modern, full-stack product management system with real-time synchronization an
 - **Express.js** - Web framework
 - **PostgreSQL** - Primary database
 - **Socket.io** - Real-time communication
-- **Simple-peer** - WebRTC P2P connections
+- **Node-cron** - Task scheduling for health checks
+- **Redis** - Distributed caching and session storage
 - **JWT** - Authentication
 - **bcryptjs** - Password hashing
 - **Express-validator** - Input validation
@@ -40,7 +41,7 @@ A modern, full-stack product management system with real-time synchronization an
 - **React Query** - Data fetching and caching
 - **React Router** - Navigation
 - **Socket.io-client** - Real-time updates
-- **Simple-peer** - P2P connections
+- **Axios** - HTTP client for API calls
 - **Framer Motion** - Animations
 - **React Hook Form** - Form handling
 

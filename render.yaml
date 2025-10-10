@@ -1,13 +1,18 @@
 services:
+  # Backend Node 1 (Primary)
   - type: web
-    name: product-management-backend
+    name: product-management-node-1
     env: node
-    plan: free
+    plan: starter
     buildCommand: cd backend && npm install
     startCommand: cd backend && npm start
     envVars:
       - key: NODE_ENV
         value: production
+      - key: PORT
+        value: 10000
+      - key: NODE_ID
+        value: node-1-primary
       - key: DATABASE_URL
         fromDatabase:
           name: product-management-db
@@ -19,7 +24,73 @@ services:
       - key: RATE_LIMIT_WINDOW_MS
         value: 900000
       - key: RATE_LIMIT_MAX_REQUESTS
-        value: 100
+        value: 200
+      - key: DISCOVERY_NODES
+        value: ""
+      - key: IS_PRIMARY_NODE
+        value: true
+
+  # Backend Node 2 (Secondary)
+  - type: web
+    name: product-management-node-2
+    env: node
+    plan: starter
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: NODE_ID
+        value: node-2-secondary
+      - key: DATABASE_URL
+        fromDatabase:
+          name: product-management-db
+          property: connectionString
+      - key: JWT_SECRET
+        sync: product-management-node-1
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: 200
+      - key: DISCOVERY_NODES
+        value: "https://product-management-node-1.onrender.com"
+      - key: IS_PRIMARY_NODE
+        value: false
+
+  # Backend Node 3 (Secondary)
+  - type: web
+    name: product-management-node-3
+    env: node
+    plan: starter
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: NODE_ID
+        value: node-3-secondary
+      - key: DATABASE_URL
+        fromDatabase:
+          name: product-management-db
+          property: connectionString
+      - key: JWT_SECRET
+        sync: product-management-node-1
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: 200
+      - key: DISCOVERY_NODES
+        value: "https://product-management-node-1.onrender.com,https://product-management-node-2.onrender.com"
+      - key: IS_PRIMARY_NODE
+        value: false
 
   - type: web
     name: product-management-frontend
