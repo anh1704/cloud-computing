@@ -25,13 +25,11 @@ import { useQuery } from 'react-query';
 import { productsAPI, categoriesAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
-import { useP2P } from '../../context/P2PContext';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { connected, onlineUsers } = useSocket();
-  const { connections } = useP2P();
 
   const { data: productStats, isLoading: statsLoading } = useQuery(
     'productStats',
@@ -80,8 +78,8 @@ const Dashboard = () => {
       loading: false,
     },
     {
-      title: 'P2P Connections',
-      value: connections.length,
+      title: 'Cluster Nodes',
+      value: 3, // Distributed system with 3 nodes
       icon: Share,
       color: 'info',
       loading: false,
@@ -188,10 +186,10 @@ const Dashboard = () => {
                   <Button
                     variant="outlined"
                     startIcon={<Share />}
-                    onClick={() => navigate('/p2p')}
+                    onClick={() => navigate('/cluster')}
                     fullWidth
                   >
-                    P2P Sync
+                    Cluster Status
                   </Button>
                 </Box>
               </CardContent>
@@ -286,9 +284,9 @@ const Dashboard = () => {
                     />
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Typography variant="body2">P2P Connections</Typography>
+                    <Typography variant="body2">Cluster Nodes</Typography>
                     <Chip
-                      label={connections.length}
+                      label={3}
                       size="small"
                       color="primary"
                     />

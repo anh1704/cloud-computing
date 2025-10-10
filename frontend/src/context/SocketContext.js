@@ -112,25 +112,17 @@ export const SocketProvider = ({ children }) => {
       window.dispatchEvent(new CustomEvent('syncResponse', { detail: data }));
     });
 
-    // P2P events
-    newSocket.on('p2p:connect_request', (data) => {
-      toast(`P2P connection request from ${data.from_user}`, {
-        icon: '🤝',
-      });
-      window.dispatchEvent(new CustomEvent('p2pConnectRequest', { detail: data }));
+    // Cluster events (replaces P2P)
+    newSocket.on('cluster:node_joined', (data) => {
+      toast.success(`New node joined cluster: ${data.nodeId}`);
     });
 
-    newSocket.on('p2p:signal', (data) => {
-      window.dispatchEvent(new CustomEvent('p2pSignal', { detail: data }));
+    newSocket.on('cluster:node_left', (data) => {
+      toast.warning(`Node left cluster: ${data.nodeId}`);
     });
 
-    newSocket.on('p2p:connected', (data) => {
-      toast.success('P2P connection established');
-      window.dispatchEvent(new CustomEvent('p2pConnected', { detail: data }));
-    });
-
-    newSocket.on('p2p:data_received', (data) => {
-      window.dispatchEvent(new CustomEvent('p2pDataReceived', { detail: data }));
+    newSocket.on('cluster:sync_complete', (data) => {
+      toast.success('Data synchronized across cluster');
     });
 
     // Error handling
@@ -181,17 +173,7 @@ export const SocketProvider = ({ children }) => {
     }
   };
 
-  const emitP2PConnect = (targetPeerId, connectionData) => {
-    if (socket && connected) {
-      socket.emit('p2p:connect', { target_peer_id: targetPeerId, connection_data: connectionData });
-    }
-  };
-
-  const emitP2PShare = (targetPeerId, sharedData) => {
-    if (socket && connected) {
-      socket.emit('p2p:share', { target_peer_id: targetPeerId, shared_data: sharedData });
-    }
-  };
+  // Removed P2P functions - using distributed cluster instead
 
   const value = {
     socket,
@@ -202,8 +184,6 @@ export const SocketProvider = ({ children }) => {
     emitProductDelete,
     emitSyncRequest,
     emitSyncResponse,
-    emitP2PConnect,
-    emitP2PShare,
   };
 
   return (
