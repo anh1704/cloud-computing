@@ -9,7 +9,6 @@ import { Toaster } from 'react-hot-toast';
 import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
-import { P2PProvider } from './context/P2PContext';
 
 // Create theme
 const theme = createTheme({
@@ -111,7 +110,6 @@ root.render(
           <CssBaseline />
           <AuthProvider>
             <SocketProvider>
-              <P2PProvider>
                 <Toaster
                   position="top-right"
                   toastOptions={{
@@ -137,7 +135,6 @@ root.render(
                   }}
                 />
                 <App />
-              </P2PProvider>
             </SocketProvider>
           </AuthProvider>
         </ThemeProvider>
