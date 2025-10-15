@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User } from '../types';
+import { serverManager } from '../services/serverManager';
 
 interface AuthContextType {
   user: User | null;
@@ -11,8 +12,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_URL = import.meta.env.PROD ? 'https://backend-server-a.onrender.com/auth' : 'http://localhost:4000/auth';
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
@@ -22,17 +21,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const loadUser = async () => {
       if (!token) return;
       try {
-        const res = await fetch(`${API_URL}/me`, {
+        const data = await serverManager.makeRequest<{user: User}>('/auth/me', {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (!res.ok) {
-          console.warn('Token invalid or expired');
-          return;
-        }
-        const data = await res.json();
         setUser(data.user);
       } catch (err) {
-        console.error(err);
+        console.warn('Token invalid or expired');
       }
     };
     loadUser();
@@ -40,13 +34,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      const res = await fetch(`${API_URL}/login`, {
+      const data = await serverManager.makeRequest<{user: User, token: string}>('/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-      if (!res.ok) return false;
-      const data = await res.json();
       setUser(data.user);
       setToken(data.token);
       localStorage.setItem('token', data.token);
@@ -58,13 +50,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signup = async (email: string, password: string, name: string) => {
     try {
-      const res = await fetch(`${API_URL}/register`, {
+      const data = await serverManager.makeRequest<{user: User, token: string}>('/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, name }),
       });
-      if (!res.ok) return false;
-      const data = await res.json();
       setUser(data.user);
       setToken(data.token);
       localStorage.setItem('token', data.token);
