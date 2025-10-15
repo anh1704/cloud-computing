@@ -48,7 +48,24 @@ class ServerManager {
   private healthCheckInterval: NodeJS.Timeout | null = null;
 
   constructor() {
+    this.initializePreferredServer();
     this.startHealthChecks();
+  }
+
+  // Khởi tạo server ưu tiên dựa trên URL parameter
+  private initializePreferredServer() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const preferredServer = urlParams.get('server');
+    
+    if (preferredServer) {
+      const serverIndex = this.servers.findIndex(s => s.id === `server-${preferredServer}`);
+      if (serverIndex !== -1) {
+        this.currentServerIndex = serverIndex;
+        console.log(`[ServerManager] Using preferred server: ${this.servers[serverIndex].name}`);
+      } else {
+        console.warn(`[ServerManager] Invalid server parameter: ${preferredServer}`);
+      }
+    }
   }
 
   // Bắt đầu kiểm tra sức khỏe định kỳ
