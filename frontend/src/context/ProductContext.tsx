@@ -34,7 +34,23 @@ export function ProductProvider({ children }: { children: ReactNode }) {
         imageUrl: p.image_url,
         createdAt: p.created_at,
       }));
-      setProducts(mapped);
+      
+      // Remove duplicates based on ID
+      const uniqueProducts = mapped.reduce((acc: Product[], current: Product) => {
+        const existingProduct = acc.find(p => p.id === current.id);
+        if (!existingProduct) {
+          acc.push(current);
+        } else {
+          // Keep the newer one based on createdAt
+          if (new Date(current.createdAt) > new Date(existingProduct.createdAt)) {
+            const index = acc.findIndex(p => p.id === current.id);
+            acc[index] = current;
+          }
+        }
+        return acc;
+      }, []);
+      
+      setProducts(uniqueProducts);
       setError(null);
     } catch (err: any) {
       console.error(err);

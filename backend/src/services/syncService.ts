@@ -114,14 +114,27 @@ class SyncService {
     
     try {
       if (event.table === 'products') {
-        const { name, description, price, category, stock, image_url } = event.data;
-        await pool.query(
-          `INSERT INTO products (name, description, price, category, stock, image_url, created_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)
-           ON CONFLICT (id) DO NOTHING`,
-          [name, description, price, category, stock, image_url, event.timestamp]
+        const { id, name, description, price, category, stock, image_url } = event.data;
+        
+        // Kiểm tra xem sản phẩm đã tồn tại chưa (dựa trên unique fields)
+        const existing = await pool.query(
+          'SELECT id FROM products WHERE name = $1 AND price = $2',
+          [name, price]
         );
-        console.log(`[SYNC] Created product: ${name}`);
+        
+        if (existing.rows.length > 0) {
+          console.log(`[SYNC] Product already exists: ${name}, skipping`);
+          return;
+        }
+        
+        // Insert với ID cụ thể từ server gốc
+        await pool.query(
+          `INSERT INTO products (id, name, description, price, category, stock, image_url, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+           ON CONFLICT (id) DO NOTHING`,
+          [id, name, description, price, category, stock, image_url, event.timestamp]
+        );
+        console.log(`[SYNC] Created product with ID ${id}: ${name}`);
       }
     } catch (error) {
       console.error('[SYNC] Error handling CREATE event:', error);
