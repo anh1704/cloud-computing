@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Product } from '../types';
 import { useAuth } from './AuthContext';
+import { serverManager } from '../services/serverManager';
 
 interface ProductContextType {
   products: Product[];
@@ -14,7 +15,6 @@ interface ProductContextType {
 }
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
-const API_URL = 'https://backend-r978.onrender.com/products';
 
 export function ProductProvider({ children }: { children: ReactNode }) {
   const { token } = useAuth();
@@ -26,11 +26,9 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     if (!token) return;
     try {
       setLoading(true);
-      const res = await fetch(API_URL, {
+      const data = await serverManager.makeRequest('/products', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error('Failed to fetch products');
-      const data = await res.json();
       const mapped = data.map((p: any) => ({
         ...p,
         imageUrl: p.image_url,
@@ -51,13 +49,11 @@ export function ProductProvider({ children }: { children: ReactNode }) {
   const createProduct = async (product: Omit<Product, 'id' | 'createdAt'>) => {
     if (!token) return;
     try {
-      const res = await fetch(API_URL, {
+      const newProduct = await serverManager.makeRequest('/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ ...product, image_url: product.imageUrl }),
       });
-      if (!res.ok) throw new Error('Failed to create product');
-      const newProduct = await res.json();
       setProducts((prev) => [
         { ...newProduct, imageUrl: newProduct.image_url, createdAt: newProduct.created_at },
         ...prev,
@@ -71,13 +67,11 @@ export function ProductProvider({ children }: { children: ReactNode }) {
   const updateProduct = async (id: string, updates: Partial<Product>) => {
     if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/${id}`, {
+      const updated = await serverManager.makeRequest(`/products/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ ...updates, image_url: updates.imageUrl }),
       });
-      if (!res.ok) throw new Error('Failed to update product');
-      const updated = await res.json();
       setProducts((prev) =>
         prev.map((p) =>
           p.id === id
@@ -94,11 +88,10 @@ export function ProductProvider({ children }: { children: ReactNode }) {
   const deleteProduct = async (id: string) => {
     if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/${id}`, {
+      await serverManager.makeRequest(`/products/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error('Failed to delete product');
       setProducts((prev) => prev.filter((p) => p.id !== id));
     } catch (err: any) {
       console.error(err);

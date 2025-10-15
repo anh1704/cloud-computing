@@ -11,7 +11,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_URL = 'https://backend-r978.onrender.com/auth';
+const API_URL = import.meta.env.PROD ? 'https://backend-server-a.onrender.com/auth' : 'http://localhost:4000/auth';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);

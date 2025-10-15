@@ -1,0 +1,125 @@
+# Render configuration for multiple backend instances
+services:
+  # Server A (Primary)
+  - type: web
+    name: backend-server-a
+    env: node
+    plan: starter
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SERVER_ID
+        value: server-a
+      - key: PORT
+        value: 4000
+      - key: DB_HOST
+        value: aws-1-ap-southeast-1.pooler.supabase.com
+      - key: DB_USER
+        value: postgres.quvkpbfekclafxegcgdv
+      - key: DB_PASSWORD
+        value: Acd0174@
+      - key: DB_NAME
+        value: postgres
+      - key: DB_PORT
+        value: 6543
+      - key: JWT_SECRET
+        value: 0GidsHZu1Ir29f7w+cAt9supD3GZBkk13S1zcxdWL2DwNFR5YQG2d2l6MiD4hxbBsOYm6x+fPpdEXyxO5bG7ew==
+      - key: SERVER_A_URL
+        value: https://backend-server-a.onrender.com
+      - key: SERVER_B_URL
+        value: https://backend-server-b.onrender.com
+      - key: SERVER_C_URL
+        value: https://backend-server-c.onrender.com
+
+  # Server B (Secondary)
+  - type: web
+    name: backend-server-b
+    env: node
+    plan: starter
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SERVER_ID
+        value: server-b
+      - key: PORT
+        value: 4000
+      - key: DB_HOST
+        value: aws-1-ap-southeast-1.pooler.supabase.com
+      - key: DB_USER
+        value: postgres.quvkpbfekclafxegcgdv
+      - key: DB_PASSWORD
+        value: Acd0174@
+      - key: DB_NAME
+        value: postgres
+      - key: DB_PORT
+        value: 6543
+      - key: JWT_SECRET
+        value: 0GidsHZu1Ir29f7w+cAt9supD3GZBkk13S1zcxdWL2DwNFR5YQG2d2l6MiD4hxbBsOYm6x+fPpdEXyxO5bG7ew==
+      - key: SERVER_A_URL
+        value: https://backend-server-a.onrender.com
+      - key: SERVER_B_URL
+        value: https://backend-server-b.onrender.com
+      - key: SERVER_C_URL
+        value: https://backend-server-c.onrender.com
+
+  # Server C (Tertiary)
+  - type: web
+    name: backend-server-c
+    env: node
+    plan: starter
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SERVER_ID
+        value: server-c
+      - key: PORT
+        value: 4000
+      - key: DB_HOST
+        fromDatabase:
+          name: postgres-db
+          property: host
+      - key: DB_USER
+        fromDatabase:
+          name: postgres-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: postgres-db
+          property: password
+      - key: DB_NAME
+        fromDatabase:
+          name: postgres-db
+          property: database
+      - key: DB_PORT
+        fromDatabase:
+          name: postgres-db
+          property: port
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SERVER_A_URL
+        value: https://backend-server-a.onrender.com
+      - key: SERVER_B_URL
+        value: https://backend-server-b.onrender.com
+      - key: SERVER_C_URL
+        value: https://backend-server-c.onrender.com
+
+  # Frontend
+  - type: web
+    name: frontend-app
+    env: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://backend-server-a.onrender.com
+
+# Shared PostgreSQL Database
+databases:
+  - name: postgres-db
+    plan: starter

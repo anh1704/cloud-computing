@@ -4,6 +4,9 @@ import dotenv from 'dotenv';
 import { pool } from './db';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { syncService } from './services/syncService';
+import { healthService } from './services/healthService';
+import { CURRENT_SERVER } from './config/servers';
 
 dotenv.config();
 
@@ -13,6 +16,12 @@ const JWT_SECRET = process.env.JWT_SECRET || 'secret';
 
 app.use(cors());
 app.use(express.json());
+
+// Middleware để log request
+app.use((req, res, next) => {
+  console.log(`[${CURRENT_SERVER?.name || 'Unknown'}] ${req.method} ${req.path}`);
+  next();
+});
 
 // REGISTER
 app.post('/auth/register', async (req, res) => {
@@ -114,6 +123,10 @@ app.post('/products', async (req, res) => {
        RETURNING *`,
       [name, description, price, category, stock, imageUrl]
     );
+    
+    // Đồng bộ với các server khác
+    await syncService.addSyncEvent('CREATE', 'products', result.rows[0]);
+    
     res.status(201).json(result.rows[0]);
   } catch (err) {
     console.error('POST /products error:', err);
@@ -134,6 +147,10 @@ app.put('/products/:id', async (req, res) => {
 
     if (result.rows.length === 0)
       return res.status(404).json({ message: 'Product not found' });
+    
+    // Đồng bộ với các server khác
+    await syncService.addSyncEvent('UPDATE', 'products', result.rows[0]);
+    
     res.json(result.rows[0]);
   } catch (err) {
     console.error('PUT /products/:id error:', err);
@@ -147,6 +164,10 @@ app.delete('/products/:id', async (req, res) => {
     const result = await pool.query('DELETE FROM products WHERE id=$1 RETURNING id', [id]);
     if (result.rows.length === 0)
       return res.status(404).json({ message: 'Product not found' });
+    
+    // Đồng bộ với các server khác
+    await syncService.addSyncEvent('DELETE', 'products', { id });
+    
     res.json({ message: 'Product deleted', id });
   } catch (err) {
     console.error('DELETE /products/:id error:', err);
@@ -154,7 +175,61 @@ app.delete('/products/:id', async (req, res) => {
   }
 });
 
+// API endpoints cho distributed system
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  const healthStats = healthService.getHealthStats();
+  res.json({
+    status: 'healthy',
+    server: CURRENT_SERVER,
+    timestamp: new Date(),
+    stats: healthStats
+  });
+});
+
+// Nhận sync events từ server khác
+app.post('/api/sync/receive', async (req, res) => {
+  try {
+    const event = req.body;
+    await syncService.receiveEvent(event);
+    res.json({ message: 'Event received and processed' });
+  } catch (error) {
+    console.error('Error receiving sync event:', error);
+    res.status(500).json({ message: 'Error processing sync event' });
+  }
+});
+
+// Lấy thông tin về cluster
+app.get('/api/cluster/status', (req, res) => {
+  const healthStatuses = healthService.getAllHealthStatuses();
+  const stats = healthService.getHealthStats();
+  
+  res.json({
+    currentServer: CURRENT_SERVER,
+    healthStatuses,
+    stats,
+    timestamp: new Date()
+  });
+});
+
+// Lấy danh sách server khỏe mạnh
+app.get('/api/cluster/healthy-servers', (req, res) => {
+  const healthyServers = healthService.getHealthyServers();
+  const primaryServer = healthService.getPrimaryHealthyServer();
+  
+  res.json({
+    healthyServers,
+    primaryServer,
+    timestamp: new Date()
+  });
+});
+
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`[${CURRENT_SERVER?.name || 'Unknown'}] Server running on http://localhost:${PORT}`);
+  console.log(`[${CURRENT_SERVER?.name || 'Unknown'}] Server ID: ${CURRENT_SERVER?.id || 'unknown'}`);
+  
+  // Bắt đầu health checks
+  healthService.startHealthChecks(30000); // Check every 30 seconds
 });
 
