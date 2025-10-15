@@ -26,7 +26,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     if (!token) return;
     try {
       setLoading(true);
-      const data = await serverManager.makeRequest('/products', {
+      const data = await serverManager.makeRequest<any[]>('/products', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const mapped = data.map((p: any) => ({
@@ -49,15 +49,21 @@ export function ProductProvider({ children }: { children: ReactNode }) {
   const createProduct = async (product: Omit<Product, 'id' | 'createdAt'>) => {
     if (!token) return;
     try {
-      const newProduct = await serverManager.makeRequest('/products', {
+      const newProduct = await serverManager.makeRequest<any>('/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ ...product, image_url: product.imageUrl }),
       });
-      setProducts((prev) => [
-        { ...newProduct, imageUrl: newProduct.image_url, createdAt: newProduct.created_at },
-        ...prev,
-      ]);
+      const mappedProduct = { ...newProduct, imageUrl: newProduct.image_url, createdAt: newProduct.created_at };
+      setProducts((prev) => {
+        // Kiểm tra duplicate trước khi thêm
+        const exists = prev.find(p => p.id === mappedProduct.id);
+        if (exists) {
+          console.warn('Product already exists, skipping duplicate');
+          return prev;
+        }
+        return [mappedProduct, ...prev];
+      });
     } catch (err: any) {
       console.error(err);
       setError(err.message);
@@ -67,7 +73,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
   const updateProduct = async (id: string, updates: Partial<Product>) => {
     if (!token) return;
     try {
-      const updated = await serverManager.makeRequest(`/products/${id}`, {
+      const updated = await serverManager.makeRequest<any>(`/products/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ ...updates, image_url: updates.imageUrl }),
