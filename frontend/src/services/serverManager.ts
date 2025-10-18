@@ -46,10 +46,24 @@ class ServerManager {
 
   private currentServerIndex = 0;
   private healthCheckInterval: NodeJS.Timeout | null = null;
+  private serverSwitchListeners: Array<() => void> = [];
 
   constructor() {
     this.initializePreferredServer();
     this.startHealthChecks();
+  }
+
+  // Subscribe to server switch events
+  onServerSwitch(callback: () => void) {
+    this.serverSwitchListeners.push(callback);
+    return () => {
+      this.serverSwitchListeners = this.serverSwitchListeners.filter(cb => cb !== callback);
+    };
+  }
+
+  // Notify listeners when server switches
+  private notifyServerSwitch() {
+    this.serverSwitchListeners.forEach(callback => callback());
   }
 
   // Khởi tạo server ưu tiên dựa trên URL parameter
@@ -158,6 +172,7 @@ class ServerManager {
     this.currentServerIndex = this.servers.findIndex(s => s.id === nextServer.id);
     
     console.log(`[ServerManager] Switched to ${nextServer.name}`);
+    this.notifyServerSwitch(); // Notify listeners
     return true;
   }
 

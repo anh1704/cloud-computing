@@ -21,6 +21,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastFetch, setLastFetch] = useState<number>(0);
 
   const fetchProducts = async () => {
     if (!token) return;
@@ -58,7 +59,35 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
+    setLastFetch(Date.now());
   };
+
+  // Auto-refresh mỗi 10 giây
+  useEffect(() => {
+    if (!token) return;
+    
+    fetchProducts(); // Load ban đầu
+    
+    const interval = setInterval(() => {
+      // Chỉ fetch nếu đã qua 10 giây kể từ lần fetch cuối
+      if (Date.now() - lastFetch > 10000) {
+        console.log('[ProductContext] Auto-refreshing products...');
+        fetchProducts();
+      }
+    }, 10000);
+    
+    return () => clearInterval(interval);
+  }, [token, lastFetch]);
+
+  // Listen for server switches
+  useEffect(() => {
+    const unsubscribe = serverManager.onServerSwitch(() => {
+      console.log('[ProductContext] Server switched, refreshing products...');
+      fetchProducts();
+    });
+    
+    return unsubscribe;
+  }, []);
 
   const getProductById = (id: string) => products.find((p) => p.id === id);
 
@@ -80,6 +109,12 @@ export function ProductProvider({ children }: { children: ReactNode }) {
         }
         return [mappedProduct, ...prev];
       });
+      
+      // Refresh sau 2 giây để đồng bộ với servers khác
+      setTimeout(() => {
+        console.log('[ProductContext] Refreshing after create...');
+        fetchProducts();
+      }, 2000);
     } catch (err: any) {
       console.error(err);
       setError(err.message);
@@ -101,6 +136,12 @@ export function ProductProvider({ children }: { children: ReactNode }) {
             : p
         )
       );
+      
+      // Refresh sau update
+      setTimeout(() => {
+        console.log('[ProductContext] Refreshing after update...');
+        fetchProducts();
+      }, 2000);
     } catch (err: any) {
       console.error(err);
       setError(err.message);
@@ -115,6 +156,12 @@ export function ProductProvider({ children }: { children: ReactNode }) {
         headers: { Authorization: `Bearer ${token}` },
       });
       setProducts((prev) => prev.filter((p) => p.id !== id));
+      
+      // Refresh sau delete
+      setTimeout(() => {
+        console.log('[ProductContext] Refreshing after delete...');
+        fetchProducts();
+      }, 2000);
     } catch (err: any) {
       console.error(err);
       setError(err.message);
