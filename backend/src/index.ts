@@ -14,7 +14,21 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 const JWT_SECRET = process.env.JWT_SECRET || 'secret';
 
-app.use(cors());
+// CORS Configuration - Allow frontend to access backend
+const corsOptions = {
+  origin: [
+    'http://localhost:5173',                          // Local development
+    'https://frontend-app-8pyg.onrender.com',         // Production frontend
+    /^https:\/\/.*\.onrender\.com$/                   // Any Render domain
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Server-ID', 'X-Health-Check'],
+  exposedHeaders: ['X-Server-ID'],
+  maxAge: 86400 // 24 hours
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Middleware để log request
@@ -22,6 +36,10 @@ app.use((req, res, next) => {
   console.log(`[${CURRENT_SERVER?.name || 'Unknown'}] ${req.method} ${req.path}`);
   next();
 });
+
+// Handle preflight requests for all routes
+app.options('*', cors(corsOptions));
+
 
 // REGISTER
 app.post('/auth/register', async (req, res) => {
