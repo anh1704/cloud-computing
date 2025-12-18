@@ -48,6 +48,8 @@ class ServerManager {
   private healthCheckInterval: NodeJS.Timeout | null = null;
   private serverSwitchListeners: Array<() => void> = [];
   private requestLock = false;
+  private switchingInProgress = false;
+  private lastSwitchTime = 0;
 
   constructor() {
     this.initializePreferredServer();
@@ -157,27 +159,47 @@ class ServerManager {
 
   // Chuyển sang server tiếp theo
   switchToNextServer(): boolean {
-    const healthyServers = this.getHealthyServers();
-    if (healthyServers.length === 0) {
-      console.error('[ServerManager] No healthy servers available');
-      return false;
+    // Debounce: Tránh switch quá nhanh (trong vòng 1 giây)
+    const now = Date.now();
+    if (now - this.lastSwitchTime < 1000) {
+      console.log('[ServerManager] Switch too fast, debouncing...');
+      return true; // Return true để không throw error
     }
 
-    const currentServer = this.getCurrentServer();
-    console.log(`[ServerManager] Current server before switch: ${currentServer.name} (${currentServer.url})`);
+    // Mutex: Chỉ cho phép 1 switch tại một thời điểm
+    if (this.switchingInProgress) {
+      console.log('[ServerManager] Switch already in progress, waiting...');
+      return true;
+    }
 
-    // Tìm server khỏe mạnh tiếp theo
-    const currentIndex = healthyServers.findIndex(s => s.id === currentServer.id);
-    const nextIndex = (currentIndex + 1) % healthyServers.length;
-    const nextServer = healthyServers[nextIndex];
+    this.switchingInProgress = true;
+    this.lastSwitchTime = now;
 
-    // Cập nhật currentServerIndex
-    const oldIndex = this.currentServerIndex;
-    this.currentServerIndex = this.servers.findIndex(s => s.id === nextServer.id);
-    
-    console.log(`[ServerManager] Switched from ${currentServer.name} (index ${oldIndex}) to ${nextServer.name} (index ${this.currentServerIndex}, url: ${nextServer.url})`);
-    this.notifyServerSwitch(); // Notify listeners
-    return true;
+    try {
+      const healthyServers = this.getHealthyServers();
+      if (healthyServers.length === 0) {
+        console.error('[ServerManager] No healthy servers available');
+        return false;
+      }
+
+      const currentServer = this.getCurrentServer();
+      console.log(`[ServerManager] Current server before switch: ${currentServer.name} (${currentServer.url})`);
+
+      // Tìm server khỏe mạnh tiếp theo
+      const currentIndex = healthyServers.findIndex(s => s.id === currentServer.id);
+      const nextIndex = (currentIndex + 1) % healthyServers.length;
+      const nextServer = healthyServers[nextIndex];
+
+      // Cập nhật currentServerIndex
+      const oldIndex = this.currentServerIndex;
+      this.currentServerIndex = this.servers.findIndex(s => s.id === nextServer.id);
+      
+      console.log(`[ServerManager] Switched from ${currentServer.name} (index ${oldIndex}) to ${nextServer.name} (index ${this.currentServerIndex}, url: ${nextServer.url})`);
+      this.notifyServerSwitch(); // Notify listeners
+      return true;
+    } finally {
+      this.switchingInProgress = false;
+    }
   }
 
   // Thực hiện request với failover
