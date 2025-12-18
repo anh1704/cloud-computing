@@ -89,7 +89,7 @@ class ServerManager {
   private startHealthChecks() {
     this.healthCheckInterval = setInterval(() => {
       this.checkAllServers();
-    }, 30000); // Check every 30 seconds
+    }, 10000); // Check every 10 seconds (faster detection)
 
     // Kiểm tra ngay lập tức
     this.checkAllServers();
@@ -103,10 +103,16 @@ class ServerManager {
     }
   }
 
-  // Kiểm tra tất cả server
+  // Kiểm tra tất cả server (private)
   private async checkAllServers() {
     const promises = this.servers.map(server => this.checkServerHealth(server));
     await Promise.allSettled(promises);
+  }
+
+  // Force check tất cả servers ngay lập tức (public - dùng từ UI)
+  async forceHealthCheck() {
+    console.log('[ServerManager] Force health check triggered');
+    await this.checkAllServers();
   }
 
   // Kiểm tra sức khỏe của một server
@@ -294,6 +300,10 @@ class ServerManager {
 
         // Đánh dấu server hiện tại là unhealthy
         currentServer.isHealthy = false;
+
+        // Trigger immediate health check để nhanh chóng phát hiện servers khác
+        console.log(`[ServerManager] Triggering immediate health check...`);
+        this.checkAllServers().catch(err => console.error('Health check failed:', err));
 
         // Chuyển sang server tiếp theo
         console.log(`[ServerManager] Switching to next server...`);
