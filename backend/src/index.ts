@@ -16,11 +16,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'secret';
 
 // CORS Configuration - Allow frontend to access backend
 const corsOptions = {
-  origin: [
-    'http://localhost:5173',                          // Local development
-    'https://frontend-app-8pyg.onrender.com',         // Production frontend
-    /^https:\/\/.*\.onrender\.com$/                   // Any Render domain
-  ],
+  origin: true, // Tạm thời cho phép tất cả origins để test
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Server-ID', 'X-Health-Check'],
