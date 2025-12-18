@@ -162,16 +162,19 @@ class ServerManager {
       return false;
     }
 
-    // Tìm server khỏe mạnh tiếp theo
     const currentServer = this.getCurrentServer();
+    console.log(`[ServerManager] Current server before switch: ${currentServer.name} (${currentServer.url})`);
+
+    // Tìm server khỏe mạnh tiếp theo
     const currentIndex = healthyServers.findIndex(s => s.id === currentServer.id);
     const nextIndex = (currentIndex + 1) % healthyServers.length;
     const nextServer = healthyServers[nextIndex];
 
     // Cập nhật currentServerIndex
+    const oldIndex = this.currentServerIndex;
     this.currentServerIndex = this.servers.findIndex(s => s.id === nextServer.id);
     
-    console.log(`[ServerManager] Switched to ${nextServer.name}`);
+    console.log(`[ServerManager] Switched from ${currentServer.name} (index ${oldIndex}) to ${nextServer.name} (index ${this.currentServerIndex}, url: ${nextServer.url})`);
     this.notifyServerSwitch(); // Notify listeners
     return true;
   }
@@ -197,7 +200,8 @@ class ServerManager {
 
       try {
         const url = `${currentServer.url}${endpoint}`;
-        console.log(`[ServerManager] Making request to ${currentServer.name}: ${endpoint}`);
+        console.log(`[ServerManager] Making request to ${currentServer.name} (index ${this.currentServerIndex}): ${endpoint}`);
+        console.log(`[ServerManager] Request URL: ${url}`);
         
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -212,15 +216,51 @@ class ServerManager {
         if (response.ok) {
           return await response.json();
         } else {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          // For client errors (4xx) we should NOT mark the server as unhealthy.
+          // Try to parse a JSON body from the server to show a helpful message in the UI.
+          const err = new Error(`HTTP ${response.status}: ${response.statusText}`) as Error & { status?: number; isClientError?: boolean; responseBody?: any };
+          err.status = response.status;
+
+          if (response.status >= 400 && response.status < 500) {
+            err.isClientError = true;
+
+            // attempt to parse JSON body, fallback to text or null
+            try {
+              const cloned = response.clone();
+              const body = await cloned.json().catch(() => null);
+              err.responseBody = body;
+              // If body contains a message, prefer it as the error message
+              if (body && (body.message || body.error)) {
+                err.message = body.message || body.error;
+              }
+            } catch (e) {
+              // ignore parse errors
+            }
+          } else {
+            // for non-4xx we can also try to capture body for debugging
+            try {
+              const cloned = response.clone();
+              err.responseBody = await cloned.json().catch(() => null);
+            } catch {}
+          }
+
+          throw err;
         }
       } catch (error) {
-        lastError = error instanceof Error ? error : new Error('Unknown error');
+        const errObj = error instanceof Error ? error : new Error('Unknown error');
+
+        // If this is a client-side HTTP error (4xx), do not mark the server unhealthy or failover.
+        if ((errObj as any).isClientError) {
+          // Propagate the client error to the caller so it can handle validation/auth errors.
+          throw errObj;
+        }
+
+        lastError = errObj;
         console.error(`[ServerManager] Request failed on ${currentServer.name}:`, lastError.message);
-        
-        // Đánh dấu server hiện tại là unhealthy
+
+        // Đánh dấu server hiện tại là unhealthy for network/server errors (timeouts, 5xx, etc.)
         currentServer.isHealthy = false;
-        
+
         // Chuyển sang server tiếp theo
         if (!this.switchToNextServer()) {
           break;
