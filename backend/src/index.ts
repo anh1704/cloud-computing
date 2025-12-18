@@ -37,10 +37,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Handle preflight requests for all routes
-app.options('*', cors(corsOptions));
-
-
 // REGISTER
 app.post('/auth/register', async (req, res) => {
   try {
