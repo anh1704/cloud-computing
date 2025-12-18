@@ -47,6 +47,7 @@ class ServerManager {
   private currentServerIndex = 0;
   private healthCheckInterval: NodeJS.Timeout | null = null;
   private serverSwitchListeners: Array<() => void> = [];
+  private requestLock = false;
 
   constructor() {
     this.initializePreferredServer();
@@ -186,26 +187,35 @@ class ServerManager {
     maxRetries: number = 3
   ): Promise<T> {
     let lastError: Error | null = null;
+    let serversTriedCount = 0;
+    const maxServersToTry = this.servers.length;
     
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
+    while (serversTriedCount < maxServersToTry) {
+      // Lấy server hiện tại MỖI LẦN để đảm bảo sync
       const currentServer = this.getCurrentServer();
+      const serverUrl = currentServer.url;
+      const serverName = currentServer.name;
+      const serverIndex = this.currentServerIndex;
       
       if (!currentServer.isHealthy) {
-        console.log(`[ServerManager] Current server ${currentServer.name} is unhealthy, switching...`);
+        console.log(`[ServerManager] Current server ${serverName} is unhealthy, switching...`);
         if (!this.switchToNextServer()) {
           throw new Error('No healthy servers available');
         }
+        serversTriedCount++;
         continue;
       }
 
       try {
-        const url = `${currentServer.url}${endpoint}`;
-        console.log(`[ServerManager] Making request to ${currentServer.name} (index ${this.currentServerIndex}): ${endpoint}`);
+        // Tạo URL với server HIỆN TẠI
+        const url = `${serverUrl}${endpoint}`;
+        console.log(`[ServerManager] Attempt ${serversTriedCount + 1}: Making request to ${serverName} (index ${serverIndex})`);
         console.log(`[ServerManager] Request URL: ${url}`);
         
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);
         
+        // QUAN TRỌNG: Gọi fetch với URL đã lưu (không dùng currentServer.url)
         const response = await fetch(url, {
           ...options,
           signal: controller.signal
@@ -214,7 +224,9 @@ class ServerManager {
         clearTimeout(timeoutId);
 
         if (response.ok) {
-          return await response.json();
+          const data = await response.json();
+          console.log(`[ServerManager] ✓ Success via ${serverName}`);
+          return data;
         } else {
           // For client errors (4xx) we should NOT mark the server as unhealthy.
           // Try to parse a JSON body from the server to show a helpful message in the UI.
@@ -256,15 +268,19 @@ class ServerManager {
         }
 
         lastError = errObj;
-        console.error(`[ServerManager] Request failed on ${currentServer.name}:`, lastError.message);
+        console.error(`[ServerManager] ✗ Request failed on ${serverName}:`, lastError.message);
 
-        // Đánh dấu server hiện tại là unhealthy for network/server errors (timeouts, 5xx, etc.)
+        // Đánh dấu server hiện tại là unhealthy
         currentServer.isHealthy = false;
 
         // Chuyển sang server tiếp theo
+        console.log(`[ServerManager] Switching to next server...`);
         if (!this.switchToNextServer()) {
+          console.error(`[ServerManager] No more healthy servers to try`);
           break;
         }
+        
+        serversTriedCount++;
       }
     }
 
